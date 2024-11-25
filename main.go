@@ -8,6 +8,7 @@ import (
 
 	"github.com/devramcc/merchant-bank-go/controller"
 	"github.com/devramcc/merchant-bank-go/middleware"
+	"github.com/devramcc/merchant-bank-go/repository"
 	"github.com/devramcc/merchant-bank-go/service"
 )
 
@@ -18,10 +19,13 @@ func main() {
 	customerFilePath := "./database/customers.json"
 	whitelistAccessTokenFilePath := "./database/whitelistAccessToken.json"
 
+	// Repository
+	customerRepository := repository.NewCustomerRepository(customerFilePath)
+
 	// Service
 	hashService := &service.HashService{}
 	jwtService := service.NewJWTService("mysecretkey", time.Hour)
-	authService := service.NewAuthService(customerFilePath, whitelistAccessTokenFilePath, hashService, jwtService)
+	authService := service.NewAuthService(customerRepository, whitelistAccessTokenFilePath, hashService, jwtService)
 
 	// Controller
 	authController := controller.NewAuthController(authService)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/devramcc/merchant-bank-go/model"
 	"github.com/devramcc/merchant-bank-go/service"
 )
 
@@ -26,7 +27,7 @@ func (c *AuthController) HandleRegister(w http.ResponseWriter, r *http.Request) 
 		json.NewEncoder(w).Encode(customers)
 
 	case http.MethodPost:
-		var customer service.Customer
+		var customer model.Customer
 		if err := json.NewDecoder(r.Body).Decode(&customer); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -48,7 +49,7 @@ func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
-		var customer service.Customer
+		var customer model.Customer
 		if err := json.NewDecoder(r.Body).Decode(&customer); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return

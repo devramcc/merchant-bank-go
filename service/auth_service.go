@@ -6,29 +6,26 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/devramcc/merchant-bank-go/model"
+	"github.com/devramcc/merchant-bank-go/repository"
 )
 
-type Customer struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 type AuthService struct {
-	customers             []Customer
+	customers             []model.Customer
 	whitelistAccessTokens []string
 	nextID                int
-	filePath              string
+	customerRepository    *repository.CustomerRepository
 	hashService           *HashService
 	jwtService            *JWTService
 }
 
-func NewAuthService(filePath string, whitelistAccessTokenFilePath string, hashService *HashService, jwtService *JWTService) *AuthService {
+func NewAuthService(customerRepository *repository.CustomerRepository, whitelistAccessTokenFilePath string, hashService *HashService, jwtService *JWTService) *AuthService {
 	service := &AuthService{
-		customers:             []Customer{},
+		customers:             []model.Customer{},
 		whitelistAccessTokens: []string{},
 		nextID:                1,
-		filePath:              filePath,
+		customerRepository:    customerRepository,
 		hashService:           hashService,
 		jwtService:            jwtService,
 	}
@@ -38,17 +35,11 @@ func NewAuthService(filePath string, whitelistAccessTokenFilePath string, hashSe
 }
 
 func (s *AuthService) loadCustomers() {
-	data, err := os.ReadFile(s.filePath)
+	customers, err := s.customerRepository.LoadCustomers()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return
-		}
-		log.Fatalf("Failed to read customers file: %v", err)
+		log.Fatalf("Failed to load customers: %v", err)
 	}
-	if err := json.Unmarshal(data, &s.customers); err != nil {
-		log.Fatalf("Failed to parse customers file: %v", err)
-	}
-
+	s.customers = customers
 	for _, customer := range s.customers {
 		if customer.ID >= s.nextID {
 			s.nextID = customer.ID + 1
@@ -57,12 +48,8 @@ func (s *AuthService) loadCustomers() {
 }
 
 func (s *AuthService) saveCustomers() {
-	data, err := json.MarshalIndent(s.customers, "", "  ")
-	if err != nil {
-		log.Fatalf("Failed to marshal customers: %v", err)
-	}
-	if err := os.WriteFile(s.filePath, data, 0644); err != nil {
-		log.Fatalf("Failed to write customers file: %v", err)
+	if err := s.customerRepository.SaveCustomers(s.customers); err != nil {
+		log.Fatalf("Failed to save customers: %v", err)
 	}
 }
 
@@ -111,7 +98,7 @@ func (s *AuthService) removeWhitelistAccessToken(token string) {
 	}
 }
 
-func (s *AuthService) Register(customer Customer) error {
+func (s *AuthService) Register(customer model.Customer) error {
 	hashedPassword, err := s.hashService.HashPassword(customer.Password)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
@@ -126,7 +113,7 @@ func (s *AuthService) Register(customer Customer) error {
 	return nil
 }
 
-func (s *AuthService) Login(w http.ResponseWriter, customerLog Customer) (string, error) {
+func (s *AuthService) Login(w http.ResponseWriter, customerLog model.Customer) (string, error) {
 	for _, customer := range s.customers {
 		if customer.Username == customerLog.Username {
 			if err := s.hashService.CheckPassword(customer.Password, customerLog.Password); err == nil {
@@ -153,6 +140,6 @@ func (s *AuthService) Logout(w http.ResponseWriter, token string) {
 	fmt.Fprintln(w, "logout success")
 }
 
-func (s *AuthService) GetAll() []Customer {
+func (s *AuthService) GetAll() []model.Customer {
 	return s.customers
 }
