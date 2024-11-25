@@ -17,19 +17,23 @@ func main() {
 
 	// JSON Database
 	customerFilePath := "./database/customers.json"
-	whitelistAccessTokenFilePath := "./database/whitelistAccessToken.json"
+	whitelistAccessTokenFilePath := "./database/whitelistAccessTokens.json"
+	paymentFilePath := "./database/payments.json"
 
 	// Repository
 	customerRepository := repository.NewCustomerRepository(customerFilePath)
 	whitelistAccessTokenRepository := repository.NewWhitelistAccessTokenRepository(whitelistAccessTokenFilePath)
+	paymentRepository := repository.NewPaymentRepository(paymentFilePath)
 
 	// Service
 	hashService := service.NewHashService()
 	jwtService := service.NewJWTService("mysecretkey", time.Hour)
 	authService := service.NewAuthService(customerRepository, whitelistAccessTokenRepository, hashService, jwtService)
+	paymentService := service.NewPaymentService(paymentRepository)
 
 	// Controller
 	authController := controller.NewAuthController(authService)
+	paymentController := controller.NewPaymentController(paymentService)
 
 	// Routes
 	mux.HandleFunc("/auth", authController.HandleRegister)
@@ -41,6 +45,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "protected route")
 	}))
+	mux.HandleFunc("/payment", middleware.JWTMiddleware(jwtService, whitelistAccessTokenRepository, paymentController.HandlePayment))
 
 	// Start Server
 	log.Println("Starting server on :8080...")
