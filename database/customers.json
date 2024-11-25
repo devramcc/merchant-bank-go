@@ -1,12 +1,7 @@
 [
   {
     "id": 1,
-    "username": "Abdul",
-    "password": "$2a$10$TV/EzeKkSLLMQNz8V3FFPeFXiJKEf2kCc8icHs8RFlpqhmQmoeHiK"
-  },
-  {
-    "id": 2,
     "username": "Abdul 2",
-    "password": "$2a$10$1Z9yJ2Wh0bS9QCiB5/0kGODgGxGxemWbsV1tFOrMWEkQ2NKMOHlZW"
+    "password": "$2a$10$XVtybFXONf9sQGSHpovlS.E1oMNwfFL2xZ1jVc/7p1fkxL5/KzeiO"
   }
 ]

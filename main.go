@@ -23,7 +23,7 @@ func main() {
 	customerRepository := repository.NewCustomerRepository(customerFilePath)
 
 	// Service
-	hashService := &service.HashService{}
+	hashService := service.NewHashService()
 	jwtService := service.NewJWTService("mysecretkey", time.Hour)
 	authService := service.NewAuthService(customerRepository, whitelistAccessTokenFilePath, hashService, jwtService)
 
