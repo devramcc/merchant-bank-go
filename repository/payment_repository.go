@@ -42,3 +42,20 @@ func (r *PaymentRepository) SavePayments(payments []model.Payment) error {
 	}
 	return nil
 }
+
+func (r *PaymentRepository) GetCurrentCustomerPayments(customerID int) ([]model.Payment, error) {
+	var customerPayments []model.Payment
+
+	payments, err := r.LoadPayments()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, payment := range payments {
+		if payment.CustomerID == customerID {
+			customerPayments = append(customerPayments, payment)
+		}
+	}
+
+	return customerPayments, nil
+}

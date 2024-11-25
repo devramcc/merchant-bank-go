@@ -46,3 +46,12 @@ func (s *PaymentService) SavePayments(payment model.Payment) error {
 	}
 	return nil
 }
+
+func (s *PaymentService) GetCurrentCustomerPayments(customerID int) ([]model.Payment, error) {
+	customerPayments, err := s.paymentRepository.GetCurrentCustomerPayments(customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return customerPayments, nil
+}
