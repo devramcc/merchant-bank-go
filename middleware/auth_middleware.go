@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/devramcc/merchant-bank-go/service"
@@ -19,6 +21,31 @@ func JWTMiddleware(jwtService *service.JWTService, next http.HandlerFunc) http.H
 		_, err := jwtService.ValidateToken(tokenString)
 		if err != nil {
 			http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		whitelistData, err := os.ReadFile("./database/whitelistAccessToken.json")
+		if err != nil {
+			http.Error(w, "Failed to read whitelist", http.StatusInternalServerError)
+			return
+		}
+
+		var whitelistTokens []string
+		if err := json.Unmarshal(whitelistData, &whitelistTokens); err != nil {
+			http.Error(w, "Failed to parse whitelist", http.StatusInternalServerError)
+			return
+		}
+
+		tokenExists := false
+		for _, t := range whitelistTokens {
+			if t == tokenString {
+				tokenExists = true
+				break
+			}
+		}
+
+		if !tokenExists {
+			http.Error(w, "Unauthorized: Token not whitelisted", http.StatusUnauthorized)
 			return
 		}
 

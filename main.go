@@ -14,17 +14,22 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
+	// JSON Database
+	customerFilePath := "./database/customers.json"
+	whitelistAccessTokenFilePath := "./database/whitelistAccessToken.json"
+
 	// Service
 	hashService := &service.HashService{}
 	jwtService := service.NewJWTService("mysecretkey", time.Hour)
-	authService := service.NewAuthService(hashService, jwtService)
+	authService := service.NewAuthService(customerFilePath, whitelistAccessTokenFilePath, hashService, jwtService)
 
 	// Controller
 	authController := controller.NewAuthController(authService)
 
-	// Route
+	// Routes
 	mux.HandleFunc("/auth", authController.HandleRegister)
 	mux.HandleFunc("/auth/login", authController.HandleLogin)
+	mux.HandleFunc("/auth/logout", authController.HandleLogout)
 
 	// Protected Route
 	mux.HandleFunc("/protected", middleware.JWTMiddleware(jwtService, func(w http.ResponseWriter, r *http.Request) {

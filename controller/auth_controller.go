@@ -67,3 +67,23 @@ func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
+
+func (c *AuthController) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	switch r.Method {
+	case http.MethodPost:
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
+			http.Error(w, "Authorization header is missing or invalid", http.StatusBadRequest)
+			return
+		}
+
+		token := authHeader[7:]
+
+		c.authService.Logout(w, token)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
