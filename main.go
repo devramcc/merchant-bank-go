@@ -21,11 +21,12 @@ func main() {
 
 	// Repository
 	customerRepository := repository.NewCustomerRepository(customerFilePath)
+	whitelistAccessTokenRepository := repository.NewWhitelistAccessTokenRepository(whitelistAccessTokenFilePath)
 
 	// Service
 	hashService := service.NewHashService()
 	jwtService := service.NewJWTService("mysecretkey", time.Hour)
-	authService := service.NewAuthService(customerRepository, whitelistAccessTokenFilePath, hashService, jwtService)
+	authService := service.NewAuthService(customerRepository, whitelistAccessTokenRepository, hashService, jwtService)
 
 	// Controller
 	authController := controller.NewAuthController(authService)
@@ -36,7 +37,7 @@ func main() {
 	mux.HandleFunc("/auth/logout", authController.HandleLogout)
 
 	// Protected Route
-	mux.HandleFunc("/protected", middleware.JWTMiddleware(jwtService, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/protected", middleware.JWTMiddleware(jwtService, whitelistAccessTokenRepository, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "protected route")
 	}))

@@ -12,22 +12,24 @@ import (
 )
 
 type AuthService struct {
-	customers             []model.Customer
-	whitelistAccessTokens []string
-	nextID                int
-	customerRepository    *repository.CustomerRepository
-	hashService           *HashService
-	jwtService            *JWTService
+	customers                      []model.Customer
+	whitelistAccessTokens          []string
+	nextID                         int
+	customerRepository             *repository.CustomerRepository
+	whitelistAccessTokenRepository *repository.WhitelistAccessTokenRepository
+	hashService                    *HashService
+	jwtService                     *JWTService
 }
 
-func NewAuthService(customerRepository *repository.CustomerRepository, whitelistAccessTokenFilePath string, hashService *HashService, jwtService *JWTService) *AuthService {
+func NewAuthService(customerRepository *repository.CustomerRepository, whitelistAccessTokenRepository *repository.WhitelistAccessTokenRepository, hashService *HashService, jwtService *JWTService) *AuthService {
 	service := &AuthService{
-		customers:             []model.Customer{},
-		whitelistAccessTokens: []string{},
-		nextID:                1,
-		customerRepository:    customerRepository,
-		hashService:           hashService,
-		jwtService:            jwtService,
+		customers:                      []model.Customer{},
+		whitelistAccessTokens:          []string{},
+		nextID:                         1,
+		customerRepository:             customerRepository,
+		whitelistAccessTokenRepository: whitelistAccessTokenRepository,
+		hashService:                    hashService,
+		jwtService:                     jwtService,
 	}
 	service.loadCustomers()
 	service.loadWhitelistTokens()
@@ -68,33 +70,14 @@ func (s *AuthService) loadWhitelistTokens() {
 }
 
 func (s *AuthService) saveWhitelistAccessToken(token string) {
-	s.whitelistAccessTokens = append(s.whitelistAccessTokens, token)
-	data, err := json.MarshalIndent(s.whitelistAccessTokens, "", "  ")
-	if err != nil {
-		log.Printf("Failed to marshal whitelist tokens: %v", err)
-		return
-	}
-	if err := os.WriteFile("./database/whitelistAccessToken.json", data, 0644); err != nil {
-		log.Printf("Failed to write whitelist tokens file: %v", err)
+	if err := s.whitelistAccessTokenRepository.SaveWhitelistToken(token); err != nil {
+		log.Printf("Failed to save whitelist token: %v", err)
 	}
 }
 
 func (s *AuthService) removeWhitelistAccessToken(token string) {
-	newTokens := []string{}
-	for _, t := range s.whitelistAccessTokens {
-		if t != token {
-			newTokens = append(newTokens, t)
-		}
-	}
-	s.whitelistAccessTokens = newTokens
-
-	data, err := json.MarshalIndent(newTokens, "", "  ")
-	if err != nil {
-		log.Printf("Failed to marshal whitelist tokens: %v", err)
-		return
-	}
-	if err := os.WriteFile("./database/whitelistAccessToken.json", data, 0644); err != nil {
-		log.Printf("Failed to write whitelist tokens file: %v", err)
+	if err := s.whitelistAccessTokenRepository.RemoveWhitelistToken(token); err != nil {
+		log.Printf("Failed to remove whitelist token: %v", err)
 	}
 }
 
