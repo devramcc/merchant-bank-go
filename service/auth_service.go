@@ -12,32 +12,40 @@ type Customer struct {
 }
 
 type AuthService struct {
-	customers []Customer
-	nextID    int
+	customers   []Customer
+	nextID      int
+	hashService *HashService
 }
 
-func NewAuthService() AuthService {
-	return AuthService{
-		customers: []Customer{},
-		nextID:    1,
+func NewAuthService(hashService *HashService) *AuthService {
+	return &AuthService{
+		customers:   []Customer{},
+		nextID:      1,
+		hashService: hashService,
 	}
 }
 
-func (s *AuthService) Register(customer Customer) {
+func (s *AuthService) Register(customer Customer) error {
+	hashedPassword, err := s.hashService.HashPassword(customer.Password)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
 	customer.ID = s.nextID
+	customer.Password = hashedPassword
 	s.nextID++
 	s.customers = append(s.customers, customer)
+	return nil
 }
 
 func (s *AuthService) Login(w http.ResponseWriter, customerLog Customer) (Customer, error) {
 	for _, customer := range s.customers {
 		if customer.Username == customerLog.Username {
-			if customer.Password == customerLog.Password {
-				return customer, nil
-			} else {
-				http.Error(w, "invalid credential.", http.StatusBadRequest)
-				return Customer{}, fmt.Errorf("invalid credential")
+			err := s.hashService.CheckPassword(customer.Password, customerLog.Password)
+			if err != nil {
+				http.Error(w, "invalid credentials", http.StatusBadRequest)
+				return Customer{}, fmt.Errorf("invalid credentials")
 			}
+			return customer, nil
 		}
 	}
 	http.Error(w, "customer not found.", http.StatusBadRequest)

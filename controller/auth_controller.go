@@ -8,12 +8,12 @@ import (
 )
 
 type AuthController struct {
-	service service.AuthService
+	authService *service.AuthService
 }
 
-func NewAuthController() *AuthController {
+func NewAuthController(authService *service.AuthService) *AuthController {
 	return &AuthController{
-		service: service.NewAuthService(),
+		authService: authService,
 	}
 }
 
@@ -22,15 +22,19 @@ func (c *AuthController) HandleRegister(w http.ResponseWriter, r *http.Request) 
 
 	switch r.Method {
 	case http.MethodGet:
-		customers := c.service.GetAll()
+		customers := c.authService.GetAll()
 		json.NewEncoder(w).Encode(customers)
 
 	case http.MethodPost:
 		var customer service.Customer
 		if err := json.NewDecoder(r.Body).Decode(&customer); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
 		}
-		c.service.Register(customer)
+		if err := c.authService.Register(customer); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Customer created successfully"})
 
@@ -49,7 +53,7 @@ func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		customerRet, err := c.service.Login(w, customer)
+		customerRet, err := c.authService.Login(w, customer)
 		if err != nil {
 			return
 		}
