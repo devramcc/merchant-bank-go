@@ -15,13 +15,15 @@ type AuthService struct {
 	customers   []Customer
 	nextID      int
 	hashService *HashService
+	jwtService  *JWTService
 }
 
-func NewAuthService(hashService *HashService) *AuthService {
+func NewAuthService(hashService *HashService, jwtService *JWTService) *AuthService {
 	return &AuthService{
 		customers:   []Customer{},
 		nextID:      1,
 		hashService: hashService,
+		jwtService:  jwtService,
 	}
 }
 
@@ -37,19 +39,24 @@ func (s *AuthService) Register(customer Customer) error {
 	return nil
 }
 
-func (s *AuthService) Login(w http.ResponseWriter, customerLog Customer) (Customer, error) {
+func (s *AuthService) Login(w http.ResponseWriter, customerLog Customer) (string, error) {
 	for _, customer := range s.customers {
 		if customer.Username == customerLog.Username {
-			err := s.hashService.CheckPassword(customer.Password, customerLog.Password)
-			if err != nil {
+			if err := s.hashService.CheckPassword(customer.Password, customerLog.Password); err == nil {
+				token, err := s.jwtService.GenerateToken(customer.ID, customer.Username)
+				if err != nil {
+					http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+					return "", err
+				}
+				return token, nil
+			} else {
 				http.Error(w, "invalid credentials", http.StatusBadRequest)
-				return Customer{}, fmt.Errorf("invalid credentials")
+				return "", fmt.Errorf("invalid credentials")
 			}
-			return customer, nil
 		}
 	}
 	http.Error(w, "customer not found.", http.StatusBadRequest)
-	return Customer{}, fmt.Errorf("customer not found")
+	return "", fmt.Errorf("customer not found")
 }
 
 func (s *AuthService) GetAll() []Customer {

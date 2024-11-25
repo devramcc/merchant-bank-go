@@ -53,14 +53,14 @@ func (c *AuthController) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		customerResponse, err := c.authService.Login(w, customer)
+		token, err := c.authService.Login(w, customer)
 		if err != nil {
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message":  "Login success",
-			"customer": customerResponse,
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Login success",
+			"token":   token,
 		})
 
 	default:
